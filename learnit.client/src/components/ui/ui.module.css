@@ -184,6 +184,11 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
+[data-theme="dark"] .card {
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
 :root .card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
 }
@@ -269,10 +274,9 @@
 
 .modalOverlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: calc(100vw - 260px);
-  height: 100vh;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -281,7 +285,7 @@
   align-items: center;
   z-index: 100;
   animation: fadeIn 0.2s ease;
-  margin-left: 260px;
+  margin-left: 0;
 }
 
 [data-theme="dark"] .modalPanel {
@@ -301,13 +305,13 @@
 }
 
 .modalPanel {
-  background: #fff;
+  background: var(--surface);
   border-radius: 10px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.13), 0 1.5px 6px rgba(0, 0, 0, 0.08);
   padding: 1rem 1.5rem;
-  min-width: 380px;
+  min-width: min(380px, calc(100vw - 2rem));
   max-width: 800px;
-  width: 100%;
+  width: calc(100vw - 2rem);
   max-height: 90vh;
   overflow-y: auto;
   border: 1.5px solid var(--border);
@@ -372,7 +376,7 @@
   border-top: 1px solid var(--border);
   position: sticky;
   bottom: 0;
-  background: #fff;
+  background: var(--surface);
   z-index: 2;
   margin-left: 0px;
   padding-right: 8px;

@@ -1,4 +1,5 @@
 using Learnit.Server.Models;
+using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -7,10 +8,12 @@ namespace Learnit.Server.Services
     public class YouTubeCourseService
     {
         private readonly UrlMetadataService _urlMetadata;
+        private readonly YouTubeDataApiService _youtubeApi;
 
-        public YouTubeCourseService(UrlMetadataService urlMetadata)
+        public YouTubeCourseService(UrlMetadataService urlMetadata, YouTubeDataApiService youtubeApi)
         {
             _urlMetadata = urlMetadata;
+            _youtubeApi = youtubeApi;
         }
 
         public async Task<AiCourseGenerateResponse> CreateCourseFromUrlAsync(
@@ -19,8 +22,9 @@ namespace Learnit.Server.Services
             string? userDescription = null,
             CancellationToken cancellationToken = default)
         {
-            // Extract metadata from YouTube URL
-            var metadata = await _urlMetadata.TryGetMetadataAsync(url, cancellationToken);
+            // Prefer official YouTube Data API v3 metadata; fallback to existing extractor.
+            var metadata = await _youtubeApi.TryGetMetadataAsync(url, cancellationToken)
+                ?? await _urlMetadata.TryGetMetadataAsync(url, cancellationToken);
             
             if (metadata == null)
             {
@@ -89,8 +93,9 @@ namespace Learnit.Server.Services
                     var totalStudyMinutes = totalPlaylistMinutes * 1.15; // 15% buffer
                     var totalStudyHours = Math.Max(0.1, totalStudyMinutes / 60.0);
 
-                    foreach (var section in metadata.Sections)
+                    for (int sectionIdx = 0; sectionIdx < metadata.Sections.Count; sectionIdx++)
                     {
+                        var section = metadata.Sections[sectionIdx];
                         var videoMinutes = section.EstimatedMinutes ?? 15;
                         var videoDurationSeconds = (videoMinutes * 60);
                         var videoProportion = (double)videoMinutes / totalPlaylistMinutes;
@@ -112,6 +117,8 @@ namespace Learnit.Server.Services
                             }
                         }
 
+                        var moduleTitle = NormalizeModuleTitle(section.Title, $"Video {sectionIdx + 1}");
+
                         var videoMetadata = new
                         {
                             videoUrl = playlistId != null ? $"https://www.youtube.com/playlist?list={playlistId}" : url,
@@ -123,8 +130,8 @@ namespace Learnit.Server.Services
 
                         response.Modules.Add(new AiModuleDraft
                         {
-                            Title = CleanText(section.Title),
-                            Description = $"Video: {CleanText(section.Title)}",
+                            Title = moduleTitle,
+                            Description = $"Video: {moduleTitle}",
                             EstimatedHours = moduleHours,
                             Notes = JsonSerializer.Serialize(videoMetadata),
                             SubModules = new List<AiSubModuleDraft>() // NO submodules for YouTube
@@ -300,10 +307,38 @@ namespace Learnit.Server.Services
             return match.Success ? match.Groups[1].Value : null;
         }
 
+        private static string NormalizeModuleTitle(string? text, string fallback)
+        {
+            var cleaned = CleanText(text);
+            if (string.IsNullOrWhiteSpace(cleaned))
+                return fallback;
+
+            var lowered = cleaned.Trim().ToLowerInvariant();
+            if (lowered is "private video" or "deleted video" or "video unavailable")
+                return fallback;
+
+            return cleaned;
+        }
+
         private static string CleanText(string? text)
         {
             if (string.IsNullOrWhiteSpace(text)) return text ?? "";
-            return text.Trim();
+
+            var decoded = WebUtility.HtmlDecode(text).Trim();
+
+            // Strip leading bullet markers
+            decoded = Regex.Replace(decoded, @"^[-*•]\s+", string.Empty);
+
+            // Strip leading timestamp prefixes like 00:00, 0:00 - Intro, 01:02:03 | Topic
+            decoded = Regex.Replace(
+                decoded,
+                @"^(?:\d{1,2}:)?[0-5]?\d:[0-5]\d\s*(?:[-–—|:]\s*)?",
+                string.Empty,
+                RegexOptions.IgnoreCase);
+
+            // Normalize whitespace
+            decoded = Regex.Replace(decoded, @"\s+", " ").Trim();
+            return decoded;
         }
     }
 }

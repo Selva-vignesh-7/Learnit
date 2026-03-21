@@ -157,6 +157,20 @@ export default function Schedule() {
     return `${display} hours`;
   };
 
+  const toLocalDateTimeInput = (value) => {
+    if (!value) return "";
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    const hh = String(date.getHours()).padStart(2, "0");
+    const min = String(date.getMinutes()).padStart(2, "0");
+
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+  };
+
   const updateAutoOptions = (updates) =>
     setAutoOptions((prev) => ({ ...prev, ...updates }));
 
@@ -759,8 +773,8 @@ export default function Schedule() {
 
     setEditForm({
       title: event.title,
-      start: new Date(event.start).toISOString().slice(0, 16),
-      end: event.end ? new Date(event.end).toISOString().slice(0, 16) : "",
+      start: toLocalDateTimeInput(event.start),
+      end: toLocalDateTimeInput(event.end),
       linkToModule: "",
       unlinkFromModule: false,
       markComplete: !!currentEvent?.courseModule?.isCompleted,
@@ -831,13 +845,9 @@ export default function Schedule() {
 
       // Check if any event properties changed
       const startChanged =
-        editForm.start !==
-        new Date(editingEvent.start).toISOString().slice(0, 16);
+        editForm.start !== toLocalDateTimeInput(editingEvent.start);
       const endChanged =
-        editForm.end !==
-        (editingEvent.end
-          ? new Date(editingEvent.end).toISOString().slice(0, 16)
-          : "");
+        editForm.end !== toLocalDateTimeInput(editingEvent.end);
       const titleChanged = editForm.title !== editingEvent.title;
       const shouldUpdateEvent = titleChanged || startChanged || endChanged;
 

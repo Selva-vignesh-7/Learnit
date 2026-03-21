@@ -1,7 +1,17 @@
 import clsx from "clsx";
+import { useEffect } from "react";
 import styles from "./ui.module.css";
 
 function Modal({ title, kicker, onClose, children, className, actions }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   return (
     <div
       className={styles.modalOverlay}

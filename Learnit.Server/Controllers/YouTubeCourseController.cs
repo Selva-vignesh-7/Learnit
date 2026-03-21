@@ -13,10 +13,12 @@ namespace Learnit.Server.Controllers
     public class YouTubeCourseController : ControllerBase
     {
         private readonly YouTubeCourseService _youtubeService;
+        private readonly YouTubeDataApiService _youtubeApi;
 
-        public YouTubeCourseController(YouTubeCourseService youtubeService)
+        public YouTubeCourseController(YouTubeCourseService youtubeService, YouTubeDataApiService youtubeApi)
         {
             _youtubeService = youtubeService;
+            _youtubeApi = youtubeApi;
         }
 
         private int GetUserId()
@@ -60,6 +62,30 @@ namespace Learnit.Server.Controllers
                 Console.WriteLine($"[YouTubeCourseController] Stack trace: {ex.StackTrace}");
                 return StatusCode(500, new { message = "Failed to create YouTube course", error = ex.Message });
             }
+        }
+
+        /// <summary>Debug endpoint: returns raw API metadata without creating a course.</summary>
+        [HttpGet("debug-metadata")]
+        [AllowAnonymous]
+        public async Task<IActionResult> DebugMetadata([FromQuery] string url, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+                return BadRequest("url query param required");
+
+            var metadata = await _youtubeApi.TryGetMetadataAsync(url, ct);
+            if (metadata == null)
+                return Ok(new { source = "YouTubeDataApiService", result = (object?)null, message = "API returned null — check backend console for [YouTubeAPI] logs" });
+
+            return Ok(new
+            {
+                source = "YouTubeDataApiService",
+                platform = metadata.Platform,
+                title = metadata.Title,
+                author = metadata.Author,
+                durationMinutes = metadata.DurationMinutes,
+                sectionCount = metadata.Sections?.Count ?? 0,
+                sections = metadata.Sections?.Take(10).Select(s => new { s.Title, s.EstimatedMinutes })
+            });
         }
     }
 

@@ -101,6 +101,7 @@ namespace Learnit.Server
             builder.Services.AddScoped<JwtService>();
             builder.Services.AddScoped<AiContextBuilder>();
             builder.Services.AddHttpClient<UrlMetadataService>();
+            builder.Services.AddHttpClient<YouTubeDataApiService>();
             builder.Services.AddScoped<YouTubeCourseService>();
             builder.Services.AddScoped<FriendService>();
             builder.Services.AddScoped<AwardService>();

@@ -92,6 +92,14 @@
   box-shadow: none !important;
 }
 
+[data-theme="dark"] .autoScheduleBtn:disabled {
+  background: #1f2937 !important;
+  color: #6b7280 !important;
+  border-color: #374151 !important;
+  opacity: 0.85;
+  box-shadow: none !important;
+}
+
 .resetIconBtn {
   flex: 0 0 auto;
   width: 32px;
@@ -260,6 +268,14 @@
 .primaryBtn:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(30, 175, 83, 0.4);
+}
+
+[data-theme="dark"] .primaryBtn {
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.24);
+}
+
+[data-theme="dark"] .primaryBtn:hover {
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.28);
 }
 
 .primaryBtn:active {
