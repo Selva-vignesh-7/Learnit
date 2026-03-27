@@ -45,7 +45,9 @@ const target = env.ASPNETCORE_HTTPS_PORT
   ? `https://localhost:${env.ASPNETCORE_HTTPS_PORT}`
   : env.ASPNETCORE_URLS
   ? env.ASPNETCORE_URLS.split(";")[0]
-  : "https://localhost:7271";
+  // Default to HTTP because `launchSettings.json` defines `http` on port 5038.
+  // Using HTTPS here when the backend is actually HTTP triggers SSL "wrong version number" proxy errors.
+  : "http://localhost:5038";
 
 export default defineConfig({
   plugins: [plugin()],

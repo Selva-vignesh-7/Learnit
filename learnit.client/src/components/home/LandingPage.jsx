@@ -128,36 +128,32 @@ function Team() {
       <p>The developers behind the AI-Powered Personalized Study Planner.</p>
       <div className={styles.teamList}>
         <div className={styles.teamItem}>
-          <img src={heroImage} alt="Aravinth Krishna R" />
-          <h3>Aravinth Krishna R</h3>
+          <img src={heroImage} alt="Sri Ram S" />
+          <h3>Sri Ram S</h3>
           <h4>Full Stack Developer</h4>
-          <Socials
-            github="https://github.com/yourusername"
-            linkedin="https://www.linkedin.com/in/aravinthkrishna/"
-            website="https://yourwebsite.com"
-          />
+          <Socials github="#" linkedin="#" website="#" />
+        </div>
+        <div className={styles.teamItem}>
+          <img src={heroImage} alt="Naveen Kumar B" />
+          <h3>Naveen Kumar B</h3>
+          <h4>Full Stack Developer</h4>
+          <Socials github="#" linkedin="#" website="#" />
+        </div>
+        <div className={styles.teamItem}>
+          <img src={heroImage} alt="Raghavan S" />
+          <h3>Raghavan S</h3>
+          <h4>Full Stack Developer</h4>
+          <Socials github="#" linkedin="#" website="#" />
         </div>
         <div className={styles.teamItem}>
           <img src={heroImage} alt="Selvavignesh G R" />
           <h3>Selvavignesh G R</h3>
           <h4>Full Stack Developer</h4>
           <Socials
-            github="https://github.com/selvavignesh"
+            github="https://github.com/Selva-vignesh-7"
             linkedin="https://www.linkedin.com/in/selvavignesh/"
-            website="https://yourwebsite.com"
+            website="https://github.com/Selva-vignesh-7/learnit.client"
           />
-        </div>
-        <div className={styles.teamItem}>
-          <img src={heroImage} alt="Karolina A" />
-          <h3>Karolina A</h3>
-          <h4>Full Stack Developer</h4>
-          <Socials github="#" linkedin="#" website="#" />
-        </div>
-        <div className={styles.teamItem}>
-          <img src={heroImage} alt="Loga Priya S" />
-          <h3>Loga Priya S</h3>
-          <h4>Full Stack Developer</h4>
-          <Socials github="#" linkedin="#" website="#" />
         </div>
       </div>
     </section>
