@@ -3,6 +3,7 @@ using System;
 using Learnit.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260327071734_AddCourseReminderEmail")]
+    partial class AddCourseReminderEmail
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -230,9 +233,6 @@ namespace Server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime?>("CertificateIssuedAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -356,9 +356,6 @@ namespace Server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("DifficultyScore")
-                        .HasColumnType("integer");
-
                     b.Property<int>("EstimatedHours")
                         .HasColumnType("integer");
 
@@ -397,9 +394,6 @@ namespace Server.Migrations
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<int>("DifficultyScore")
-                        .HasColumnType("integer");
 
                     b.Property<int>("EstimatedHours")
                         .HasColumnType("integer");

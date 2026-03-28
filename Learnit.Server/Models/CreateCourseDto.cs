@@ -11,6 +11,7 @@ namespace Learnit.Server.Models
         public int TotalEstimatedHours { get; set; }
         public DateTime? TargetCompletionDate { get; set; }
         public string Notes { get; set; } = "";
+        public string ReminderEmail { get; set; } = "";
         public bool IsQuizEnabled { get; set; } = true;
         public List<CreateCourseModuleDto> Modules { get; set; } = new();
         public List<CreateExternalLinkDto> ExternalLinks { get; set; } = new();

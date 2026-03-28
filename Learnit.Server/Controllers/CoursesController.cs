@@ -6,6 +6,7 @@ using Learnit.Server.Models;
 using Learnit.Server.Services;
 using System.Security.Claims;
 using System.Collections.Generic;
+using System.Net.Mail;
 
 namespace Learnit.Server.Controllers
 {
@@ -16,11 +17,13 @@ namespace Learnit.Server.Controllers
     {
         private readonly AppDbContext _db;
         private readonly AwardService _awardService;
+        private readonly IEmailSender _emailSender;
 
-        public CoursesController(AppDbContext db, AwardService awardService)
+        public CoursesController(AppDbContext db, AwardService awardService, IEmailSender emailSender)
         {
             _db = db;
             _awardService = awardService;
+            _emailSender = emailSender;
         }
 
         private int GetUserId()
@@ -155,6 +158,10 @@ namespace Learnit.Server.Controllers
             [FromQuery] string? sortOrder = "desc")
         {
             var userId = GetUserId();
+            var userFullName = await _db.Users
+                .Where(u => u.Id == userId)
+                .Select(u => u.FullName)
+                .FirstOrDefaultAsync() ?? "";
             sortBy = string.IsNullOrWhiteSpace(sortBy) ? "createdAt" : sortBy;
             sortOrder = string.IsNullOrWhiteSpace(sortOrder) ? "desc" : sortOrder;
             var query = _db.Courses
@@ -256,6 +263,10 @@ namespace Learnit.Server.Controllers
                     Notes = c.Notes,
                     IsActive = c.IsActive,
                     LastStudiedAt = c.LastStudiedAt,
+                    ReminderEmail = c.ReminderEmail,
+                    LastReminderSentAt = c.LastReminderSentAt,
+                    UserFullName = userFullName,
+                    CertificateIssuedAt = c.CertificateIssuedAt,
                     IsQuizEnabled = c.IsQuizEnabled,
                     Modules = modulesList.OrderBy(m => m.Order).Select(m => 
                     {
@@ -315,6 +326,10 @@ namespace Learnit.Server.Controllers
         public async Task<IActionResult> GetCourse(int id)
         {
             var userId = GetUserId();
+            var userFullName = await _db.Users
+                .Where(u => u.Id == userId)
+                .Select(u => u.FullName)
+                .FirstOrDefaultAsync() ?? "";
             // Use AsNoTracking to prevent circular references during serialization
             var course = await _db.Courses
                 .AsNoTracking()
@@ -358,6 +373,10 @@ namespace Learnit.Server.Controllers
                 Notes = course.Notes,
                 IsActive = course.IsActive,
                 LastStudiedAt = course.LastStudiedAt,
+                ReminderEmail = course.ReminderEmail,
+                LastReminderSentAt = course.LastReminderSentAt,
+                UserFullName = userFullName,
+                CertificateIssuedAt = course.CertificateIssuedAt,
                 IsQuizEnabled = course.IsQuizEnabled,
                 Modules = modulesList.OrderBy(m => m.Order).Select(m => 
                 {
@@ -425,10 +444,34 @@ namespace Learnit.Server.Controllers
             };
         }
 
+        private static bool TryNormalizeEmail(string? value, out string normalized)
+        {
+            normalized = string.Empty;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            try
+            {
+                var mail = new MailAddress(value.Trim());
+                normalized = mail.Address;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateCourse(CreateCourseDto dto)
         {
             var userId = GetUserId();
+            if (!TryNormalizeEmail(dto.ReminderEmail, out var reminderEmail))
+            {
+                return BadRequest(new { message = "A valid reminder email is required." });
+            }
 
             var course = new Course
             {
@@ -443,6 +486,7 @@ namespace Learnit.Server.Controllers
                 HoursRemaining = dto.TotalEstimatedHours,
                 TargetCompletionDate = EnsureUtc(dto.TargetCompletionDate),
                 Notes = dto.Notes,
+                ReminderEmail = reminderEmail,
                 IsQuizEnabled = dto.IsQuizEnabled,
                 IsActive = true, // New courses are active by default
                 CreatedAt = DateTime.UtcNow,
@@ -563,6 +607,8 @@ namespace Learnit.Server.Controllers
                 Notes = courseForResponse.Notes,
                 IsActive = courseForResponse.IsActive,
                 LastStudiedAt = courseForResponse.LastStudiedAt,
+                ReminderEmail = courseForResponse.ReminderEmail,
+                LastReminderSentAt = courseForResponse.LastReminderSentAt,
                 IsQuizEnabled = courseForResponse.IsQuizEnabled,
                 Modules = modulesList.OrderBy(m => m.Order).Select(m => 
                 {
@@ -644,6 +690,14 @@ namespace Learnit.Server.Controllers
             }
             if (updates.ContainsKey("notes") && updates["notes"] != null)
                 course.Notes = updates["notes"].ToString() ?? "";
+            if (updates.ContainsKey("reminderEmail") && updates["reminderEmail"] != null)
+            {
+                if (!TryNormalizeEmail(updates["reminderEmail"].ToString(), out var reminderEmail))
+                {
+                    return BadRequest(new { message = "Reminder email is invalid." });
+                }
+                course.ReminderEmail = reminderEmail;
+            }
 
             if (updates.ContainsKey("isQuizEnabled") && updates["isQuizEnabled"] != null)
             {
@@ -693,6 +747,91 @@ namespace Learnit.Server.Controllers
             await _db.SaveChangesAsync();
 
             return Ok(new { message = "Course deleted successfully" });
+        }
+
+        [HttpPost("{courseId}/reminder/test")]
+        public async Task<IActionResult> SendTestReminder(int courseId)
+        {
+            var userId = GetUserId();
+            var course = await _db.Courses.FirstOrDefaultAsync(c => c.Id == courseId && c.UserId == userId);
+            if (course == null)
+            {
+                return NotFound(new { message = "Course not found" });
+            }
+
+            if (string.IsNullOrWhiteSpace(course.ReminderEmail))
+            {
+                return BadRequest(new { message = "Reminder email is not set for this course." });
+            }
+
+            try
+            {
+                var subject = $"Test reminder: '{course.Title}'";
+                var body =
+                    $"Hi,\n\n" +
+                    $"This is a test reminder email for your course '{course.Title}'.\n\n" +
+                    $"- Learnit";
+
+                await _emailSender.SendAsync(course.ReminderEmail, subject, body, HttpContext.RequestAborted);
+                course.LastReminderSentAt = DateTime.UtcNow;
+                course.UpdatedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+                return Ok(new { message = "Test reminder email sent." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("{courseId}/certificate/issue")]
+        public async Task<IActionResult> IssueCertificate(int courseId)
+        {
+            var userId = GetUserId();
+
+            var course = await _db.Courses
+                .Include(c => c.Modules)
+                    .ThenInclude(m => m.SubModules)
+                .FirstOrDefaultAsync(c => c.Id == courseId && c.UserId == userId);
+
+            if (course == null)
+            {
+                return NotFound(new { message = "Course not found" });
+            }
+
+            var totalModules = course.Modules?.Count ?? 0;
+            var completedModules = course.Modules?.Count(m => m.IsCompleted) ?? 0;
+            var progressPct = totalModules > 0
+                ? (decimal)completedModules * 100m / totalModules
+                : 0m;
+
+            if (progressPct < 100m)
+            {
+                return BadRequest(new
+                {
+                    message = "Course is not completed yet.",
+                    progressPercentage = progressPct
+                });
+            }
+
+            if (course.CertificateIssuedAt.HasValue)
+            {
+                return Ok(new
+                {
+                    message = "Certificate already issued.",
+                    certificateIssuedAt = course.CertificateIssuedAt
+                });
+            }
+
+            course.CertificateIssuedAt = DateTime.UtcNow;
+            course.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Certificate issued.",
+                certificateIssuedAt = course.CertificateIssuedAt
+            });
         }
 
         // Course Editing Methods
@@ -953,6 +1092,11 @@ namespace Learnit.Server.Controllers
             course.TotalEstimatedHours = dto.TotalEstimatedHours;
             course.TargetCompletionDate = EnsureUtc(dto.TargetCompletionDate);
             course.Notes = dto.Notes;
+            if (!TryNormalizeEmail(dto.ReminderEmail, out var reminderEmail))
+            {
+                return BadRequest(new { message = "A valid reminder email is required." });
+            }
+            course.ReminderEmail = reminderEmail;
             course.IsQuizEnabled = dto.IsQuizEnabled;
             course.UpdatedAt = DateTime.UtcNow;
 

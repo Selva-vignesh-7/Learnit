@@ -106,6 +106,9 @@ namespace Learnit.Server
             builder.Services.AddScoped<FriendService>();
             builder.Services.AddScoped<AwardService>();
             builder.Services.AddHttpClient<IAiProvider, OpenAiProvider>();
+            builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
+            builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+            builder.Services.AddHostedService<CourseReminderBackgroundService>();
 
             // JWT authentication
             builder.Services.AddAuthentication("Bearer")

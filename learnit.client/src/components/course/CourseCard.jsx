@@ -18,6 +18,8 @@ function CourseCard({ course, onNavigate, onEdit, onDelete }) {
     completedHours,
     priority,
     difficulty,
+    reminderEmail,
+    lastReminderSentAt,
   } = course;
 
   const safeTotalHours = totalEstimatedHours ?? 0;
@@ -52,6 +54,10 @@ function CourseCard({ course, onNavigate, onEdit, onDelete }) {
       onDelete(id);
     }
   };
+
+  const lastReminderText = lastReminderSentAt
+    ? new Date(lastReminderSentAt).toLocaleString()
+    : "Not sent yet";
 
   return (
     <div
@@ -93,6 +99,9 @@ function CourseCard({ course, onNavigate, onEdit, onDelete }) {
           </button>
         </div>
         <p className={styles.description}>{description || "No description"}</p>
+        <p className={styles.reminderInfo}>
+          Reminder: {reminderEmail || "Not set"} · Last sent: {lastReminderText}
+        </p>
         <div className={styles.progress}>
           <div className={styles.bar}>
             <div className={styles.fill} style={{ width: `${progress}%` }} />

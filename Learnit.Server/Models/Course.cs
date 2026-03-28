@@ -20,6 +20,9 @@ namespace Learnit.Server.Models
         public string Notes { get; set; } = "";
         public bool IsActive { get; set; } = true; // Whether the course is currently being studied
         public DateTime? LastStudiedAt { get; set; } // When the user last studied this course
+        public string ReminderEmail { get; set; } = "";
+        public DateTime? LastReminderSentAt { get; set; }
+        public DateTime? CertificateIssuedAt { get; set; }
 
         // Per-course setting: allow disabling quizzes entirely (default enabled)
         public bool IsQuizEnabled { get; set; } = true;

@@ -121,6 +121,8 @@ function CourseDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
+  const [sendingTestReminder, setSendingTestReminder] = useState(false);
+  const [issuingCertificate, setIssuingCertificate] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
@@ -2237,6 +2239,66 @@ function CourseDetails() {
     );
   }
 
+  const reminderLastSentText = course?.lastReminderSentAt
+    ? new Date(course.lastReminderSentAt).toLocaleString()
+    : "Not sent yet";
+
+  const isCourseComplete =
+    typeof course?.progressPercentage === "number" &&
+    Math.round(course.progressPercentage) >= 100;
+
+  const certificateRecipientName = course?.userFullName || "Learner";
+  const certificateCompletionDate = course?.lastStudiedAt
+    ? new Date(course.lastStudiedAt).toLocaleDateString()
+    : new Date().toLocaleDateString();
+
+  const escapeXml = (unsafe = "") =>
+    String(unsafe)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+
+  const downloadSvg = (svgText, filename) => {
+    const blob = new Blob([svgText], {
+      type: "image/svg+xml;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const buildCertificateSvg = () => {
+    const recipient = escapeXml(certificateRecipientName);
+    const title = escapeXml(course?.title || "");
+    const dateText = escapeXml(certificateCompletionDate);
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0e27"/>
+      <stop offset="100%" stop-color="#132a5a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <rect x="80" y="80" width="1040" height="640" rx="24" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
+  <text x="600" y="185" text-anchor="middle" fill="#ffffff" font-size="44" font-family="Arial, Helvetica, sans-serif" font-weight="700">Certificate of Completion</text>
+  <text x="600" y="250" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="22" font-family="Arial, Helvetica, sans-serif">This certifies that</text>
+  <text x="600" y="330" text-anchor="middle" fill="#ffffff" font-size="40" font-family="Arial, Helvetica, sans-serif" font-weight="700">${recipient}</text>
+  <text x="600" y="400" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="22" font-family="Arial, Helvetica, sans-serif">has successfully completed</text>
+  <text x="600" y="480" text-anchor="middle" fill="#ffffff" font-size="34" font-family="Arial, Helvetica, sans-serif" font-weight="600">${title}</text>
+  <text x="600" y="585" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="20" font-family="Arial, Helvetica, sans-serif">Date: ${dateText}</text>
+  <text x="600" y="655" text-anchor="middle" fill="rgba(255,255,255,0.65)" font-size="18" font-family="Arial, Helvetica, sans-serif">Learnit</text>
+</svg>`;
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -2246,6 +2308,10 @@ function CourseDetails() {
 
         <div className={styles.title}>
           <h1>{course.title}</h1>
+          <p className={styles.reminderMeta}>
+            Reminder email: {course.reminderEmail || "Not set"} · Last reminder:{" "}
+            {reminderLastSentText}
+          </p>
           <div className={styles.meta}>
             <span
               className={`${styles.badge} ${
@@ -2428,6 +2494,28 @@ function CourseDetails() {
 
         <aside className={styles.sidebar}>
           <section className={styles.section}>
+            <h2>Reminders</h2>
+            <p className={styles.subtle}>Send a test email to verify SMTP.</p>
+            <Button
+              variant="primary"
+              disabled={sendingTestReminder}
+              onClick={async () => {
+                try {
+                  setSendingTestReminder(true);
+                  await courseApi.sendTestReminder(id);
+                  toast.success("Test reminder email sent.");
+                  fetchCourse();
+                } catch (err) {
+                  toast.error(err.message || "Failed to send test reminder.");
+                } finally {
+                  setSendingTestReminder(false);
+                }
+              }}
+            >
+              {sendingTestReminder ? "Sending..." : "Send test reminder"}
+            </Button>
+          </section>
+          <section className={styles.section}>
             <h2>
               <FaClock /> Progress
             </h2>
@@ -2439,6 +2527,54 @@ function CourseDetails() {
               completedHours={course.completedHours}
               hoursRemaining={course.hoursRemaining}
             />
+          </section>
+
+          <section className={styles.section}>
+            <h2>e-Certificate</h2>
+            {isCourseComplete ? (
+              <>
+                <p className={styles.subtle}>
+                  Recipient: {certificateRecipientName}
+                </p>
+                <Button
+                  variant="primary"
+                  disabled={issuingCertificate}
+                  onClick={async () => {
+                    try {
+                      setIssuingCertificate(true);
+
+                      if (!course.certificateIssuedAt) {
+                        await courseApi.issueCertificate(id);
+                        await fetchCourse();
+                      }
+
+                      const svg = buildCertificateSvg();
+                      downloadSvg(
+                        svg,
+                        `learnit-certificate-${id}.svg`
+                      );
+                      toast.success("E-certificate ready.");
+                    } catch (err) {
+                      toast.error(
+                        err.message || "Failed to generate certificate."
+                      );
+                    } finally {
+                      setIssuingCertificate(false);
+                    }
+                  }}
+                >
+                  {course.certificateIssuedAt
+                    ? "Download e-certificate"
+                    : issuingCertificate
+                      ? "Preparing..."
+                      : "Get e-certificate"}
+                </Button>
+              </>
+            ) : (
+              <p className={styles.subtle}>
+                Complete the course to unlock your e-certificate.
+              </p>
+            )}
           </section>
 
           <section className={styles.section}>
