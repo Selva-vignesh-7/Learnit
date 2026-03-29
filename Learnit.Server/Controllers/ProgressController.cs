@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Learnit.Server.Data;
 using Learnit.Server.Models;
+using Learnit.Server.Services;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using System;
@@ -16,10 +17,12 @@ namespace Learnit.Server.Controllers
     public class ProgressController : ControllerBase
     {
         private readonly AppDbContext _db;
+        private readonly ICourseScheduleGeneticService _scheduleGa;
 
-        public ProgressController(AppDbContext db)
+        public ProgressController(AppDbContext db, ICourseScheduleGeneticService scheduleGa)
         {
             _db = db;
+            _scheduleGa = scheduleGa;
         }
 
         private int GetUserId()
@@ -33,6 +36,21 @@ namespace Learnit.Server.Controllers
             }
 
             return userId;
+        }
+
+        /// <summary>
+        /// Genetic-algorithm optimized weekly study hours per active course (personalized from study history + deadlines).
+        /// </summary>
+        [HttpGet("ga")]
+        [HttpGet("schedule/ga")]
+        public async Task<IActionResult> GetGeneticSchedule(
+            [FromQuery] int population = 48,
+            [FromQuery] int generations = 60,
+            CancellationToken cancellationToken = default)
+        {
+            var userId = GetUserId();
+            var result = await _scheduleGa.OptimizeAsync(userId, population, generations, cancellationToken);
+            return Ok(result);
         }
 
         [HttpGet("dashboard")]

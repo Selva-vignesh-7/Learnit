@@ -19,6 +19,9 @@ function Progress() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [weekOffset, setWeekOffset] = useState(0);
+  const [gaSchedule, setGaSchedule] = useState(null);
+  const [gaLoading, setGaLoading] = useState(false);
+  const [gaError, setGaError] = useState("");
 
   useEffect(() => {
     loadProgressData();
@@ -126,6 +129,62 @@ function Progress() {
       console.error("Progress data error:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadGeneticSchedule = async () => {
+    try {
+      setGaLoading(true);
+      setGaError("");
+      const raw = await progressApi.getGeneticSchedule({
+        population: 48,
+        generations: 60,
+      });
+      const cap = Number(
+        raw.personalizedWeeklyCapacityHours ??
+          raw.PersonalizedWeeklyCapacityHours ??
+          0
+      );
+      const alloc = raw.allocations || raw.Allocations || [];
+      const proj = raw.projections || raw.Projections || [];
+      setGaSchedule({
+        capacity: cap,
+        fitness: Number(raw.bestFitness ?? raw.BestFitness ?? 0),
+        generations: raw.generationsRun ?? raw.GenerationsRun ?? 0,
+        population: raw.populationSize ?? raw.PopulationSize ?? 0,
+        allocations: alloc.map((a) => ({
+          courseId: a.courseId ?? a.CourseId,
+          title: a.title ?? a.Title ?? "",
+          fraction: Number(a.fraction ?? a.Fraction ?? 0),
+          hoursPerWeek: Number(
+            a.recommendedHoursPerWeek ?? a.RecommendedHoursPerWeek ?? 0
+          ),
+        })),
+        projections: proj.map((p) => ({
+          courseId: p.courseId ?? p.CourseId,
+          title: p.title ?? p.Title ?? "",
+          weeks: p.estimatedCompletionWeek ?? p.EstimatedCompletionWeek ?? 0,
+          estDate:
+            p.estimatedCompletionDateUtc ?? p.EstimatedCompletionDateUtc ?? null,
+        })),
+      });
+    } catch (e) {
+      console.error(e);
+      const status = e?.status;
+      const detail =
+        e?.message ||
+        (typeof e === "string" ? e : "Request failed");
+      if (status === 404) {
+        setGaError(
+          "GA endpoint not found (404). Stop the API, run `dotnet run` from Learnit.Server again so the server picks up the latest code."
+        );
+      } else if (status === 401) {
+        setGaError("Not signed in or session expired. Log in again.");
+      } else {
+        setGaError(detail);
+      }
+    } finally {
+      setGaLoading(false);
     }
   };
 
@@ -475,6 +534,73 @@ function Progress() {
             <p className={styles.noData}>No courses in progress</p>
           )}
         </div>
+      </div>
+
+      <div className={styles.section}>
+        <h2>GA study plan</h2>
+        <p className={styles.gaMeta}>
+          Evolves weekly hour splits across your active courses using deadlines,
+          priorities, and your recent study-session history.
+        </p>
+        <div className={styles.gaActions}>
+          <button
+            type="button"
+            className={styles.refreshBtn}
+            onClick={loadGeneticSchedule}
+            disabled={gaLoading}
+          >
+            {gaLoading ? "Running GA…" : "Compute optimized schedule"}
+          </button>
+          {gaError ? (
+            <span style={{ color: "#c33", fontSize: "0.9rem" }}>{gaError}</span>
+          ) : null}
+        </div>
+        {gaSchedule && gaSchedule.allocations.length > 0 ? (
+          <>
+            <p className={styles.gaMeta}>
+              Model assumes ~{gaSchedule.capacity} hrs/week capacity (from your
+              history, bounded 2–45). Fitness: {gaSchedule.fitness.toFixed(2)}{" "}
+              ({gaSchedule.population}×{gaSchedule.generations} GA).
+            </p>
+            <div className={styles.gaTableWrap}>
+              <table className={styles.gaTable}>
+                <thead>
+                  <tr>
+                    <th>Course</th>
+                    <th>Share</th>
+                    <th>Hrs/week</th>
+                    <th>~Weeks to finish</th>
+                    <th>~Done by (UTC date)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {gaSchedule.allocations.map((a) => {
+                    const p = gaSchedule.projections.find(
+                      (x) => x.courseId === a.courseId
+                    );
+                    const dateStr = p?.estDate
+                      ? new Date(p.estDate).toLocaleDateString()
+                      : "—";
+                    return (
+                      <tr key={a.courseId}>
+                        <td>{a.title}</td>
+                        <td>{(a.fraction * 100).toFixed(1)}%</td>
+                        <td>{a.hoursPerWeek}</td>
+                        <td>{p?.weeks ?? "—"}</td>
+                        <td>{dateStr}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : gaSchedule && gaSchedule.allocations.length === 0 ? (
+          <p className={styles.noData}>
+            No active courses with hours remaining. Add or resume a course to
+            get a schedule.
+          </p>
+        ) : null}
       </div>
     </section>
   );
