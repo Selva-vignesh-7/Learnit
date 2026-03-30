@@ -117,4 +117,12 @@ export const courseApi = {
     if (moduleId) params.append("moduleId", moduleId);
     return http.get(`/api/courses/${courseId}/playback-position?${params.toString()}`);
   },
+
+  async sendTestReminder(courseId) {
+    return http.post(`/api/courses/${courseId}/reminder/test`, {});
+  },
+
+  async issueCertificate(courseId) {
+    return http.post(`/api/courses/${courseId}/certificate/issue`, {});
+  },
 };

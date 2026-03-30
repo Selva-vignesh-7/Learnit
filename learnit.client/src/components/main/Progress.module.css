@@ -484,6 +484,50 @@
   list-style: disc;
 }
 
+.gaMeta {
+  font-size: 0.85rem;
+  color: var(--text-soft);
+  margin: 0 0 10px;
+}
+
+.gaTableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.gaTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.gaTable th,
+.gaTable td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.gaTable th {
+  font-weight: 600;
+  color: var(--text-strong);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.gaTable tr:last-child td {
+  border-bottom: none;
+}
+
+.gaActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
 @media (max-width: 960px) {
   .dashboardGrid {
     grid-template-columns: 1fr;

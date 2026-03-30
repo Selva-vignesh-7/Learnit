@@ -10,6 +10,7 @@ namespace Learnit.Server.Models
         public int Order { get; set; }
         public string Notes { get; set; } = "";
         public bool IsCompleted { get; set; }
+        public int DifficultyScore { get; set; }
 
         public CourseModule? CourseModule { get; set; }
     }

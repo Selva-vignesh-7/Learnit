@@ -82,6 +82,18 @@ dotnet user-secrets set "Groq:ApiKey" "YOUR_GROQ_API_KEY"
 dotnet user-secrets set "OpenAi:ApiKey" "YOUR_OPENAI_API_KEY"
 ```
 
+Set SMTP settings for reminder emails:
+
+```bash
+dotnet user-secrets set "Email:SmtpHost" "smtp.gmail.com"
+dotnet user-secrets set "Email:SmtpPort" "587"
+dotnet user-secrets set "Email:SmtpUser" "your-email@gmail.com"
+dotnet user-secrets set "Email:SmtpPassword" "your-app-password"
+dotnet user-secrets set "Email:EnableSsl" "true"
+dotnet user-secrets set "Email:FromEmail" "your-email@gmail.com"
+dotnet user-secrets set "Email:FromName" "Learnit"
+```
+
 Notes:
 
 - If no AI key is configured, AI endpoints return a stub response (this is expected).

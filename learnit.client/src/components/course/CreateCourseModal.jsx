@@ -82,6 +82,7 @@ function CreateCourseModal({ onSave, onCancel }) {
       totalEstimatedHours: "",
       targetCompletionDate: "",
       notes: "",
+      reminderEmail: "",
       sourceUrl: "",
       isQuizEnabled: true,
     });
@@ -112,6 +113,7 @@ function CreateCourseModal({ onSave, onCancel }) {
     totalEstimatedHours: "",
     targetCompletionDate: "",
     notes: "",
+    reminderEmail: "",
     sourceUrl: "",
     isQuizEnabled: true,
   });
@@ -1164,6 +1166,16 @@ function CreateCourseModal({ onSave, onCancel }) {
                 name="title"
                 placeholder="e.g. Machine Learning Foundations"
                 value={formData.title}
+                onChange={handleChange}
+                required
+              />
+            </Field>
+            <Field label="Reminder email *">
+              <input
+                type="email"
+                name="reminderEmail"
+                placeholder="you@example.com"
+                value={formData.reminderEmail}
                 onChange={handleChange}
                 required
               />

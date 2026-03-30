@@ -26,4 +26,17 @@ export const progressApi = {
     }`;
     return http.get(endpoint);
   },
+
+  /** Genetic-algorithm weekly hours per active course (deadlines + your study history). */
+  async getGeneticSchedule(params = {}) {
+    const queryParams = new URLSearchParams();
+    if (params.population != null) {
+      queryParams.append("population", String(params.population));
+    }
+    if (params.generations != null) {
+      queryParams.append("generations", String(params.generations));
+    }
+    const qs = queryParams.toString();
+    return http.get(`/api/progress/ga${qs ? `?${qs}` : ""}`);
+  },
 };

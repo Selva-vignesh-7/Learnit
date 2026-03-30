@@ -324,3 +324,10 @@
     font-size: 1.05rem;
   }
 }
+
+.reminderInfo {
+  margin: 2px 0 4px;
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  line-height: 1.35;
+}

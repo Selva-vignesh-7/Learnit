@@ -20,6 +20,7 @@ function EditCourseModal({ course, onSave, onCancel }) {
     totalEstimatedHours: "",
     targetCompletionDate: "",
     notes: "",
+    reminderEmail: "",
     isQuizEnabled: true,
   });
   const [modules, setModules] = useState([]);
@@ -42,6 +43,7 @@ function EditCourseModal({ course, onSave, onCancel }) {
         totalEstimatedHours: course.totalEstimatedHours.toString(),
         targetCompletionDate: course.targetCompletionDate?.split("T")[0] || "",
         notes: course.notes || "",
+        reminderEmail: course.reminderEmail || "",
         isQuizEnabled:
           typeof course.isQuizEnabled === "boolean"
             ? course.isQuizEnabled
@@ -235,6 +237,15 @@ function EditCourseModal({ course, onSave, onCancel }) {
                 type="text"
                 name="title"
                 value={formData.title}
+                onChange={handleChange}
+                required
+              />
+            </Field>
+            <Field label="Reminder email *">
+              <input
+                type="email"
+                name="reminderEmail"
+                value={formData.reminderEmail}
                 onChange={handleChange}
                 required
               />

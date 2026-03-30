@@ -22,6 +22,10 @@ namespace Learnit.Server.Models
         public string Notes { get; set; } = "";
         public bool IsActive { get; set; }
         public DateTime? LastStudiedAt { get; set; }
+        public string ReminderEmail { get; set; } = "";
+        public DateTime? LastReminderSentAt { get; set; }
+        public string UserFullName { get; set; } = "";
+        public DateTime? CertificateIssuedAt { get; set; }
         public bool IsQuizEnabled { get; set; }
         public List<CourseModuleDto> Modules { get; set; } = new();
         public List<ExternalLinkDto> ExternalLinks { get; set; } = new();
